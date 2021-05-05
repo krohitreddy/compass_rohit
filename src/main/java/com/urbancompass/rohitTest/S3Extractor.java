@@ -69,7 +69,11 @@ public class S3Extractor {
 		BufferedWriter writer = new BufferedWriter(new FileWriter("/home/rohit.kommareddy/development/rohitTest/finalFile.tsv"));
 		writer.write("timestamp\tquery");
 		writer.newLine();
+		int num = 1;
 		for (String file : files) {
+			System.out.println(num + "");
+			System.out.println(file);
+			num++;
 			S3ObjectInputStream objectContent = null;
 			OutputStream outputStream = null;
 			String filePath = "/home/rohit.kommareddy/development/rohitTest/" + UUID.randomUUID().toString();
@@ -102,9 +106,6 @@ public class S3Extractor {
 				ParquetFileReader reader = ParquetFileReader
 						.open(HadoopInputFile.fromPath(new Path(filePath), new Configuration()));
 				MessageType schema = reader.getFooter().getFileMetaData().getSchema();
-		        List<Type> fields = schema.getFields();
-		        for (Type t: fields)
-		        	System.out.println(t.getName());
 		        
 		        PageReadStore pages;
 		        while ((pages = reader.readNextRowGroup()) != null) {
@@ -128,6 +129,7 @@ public class S3Extractor {
 		        	writer.write(simpleGroups.get(i).getLong("time_millis", 0) + "");
 		        	writer.write("\t");
 		        	writer.write(simpleGroups.get(i).getString("query", 0) + "");
+		        	writer.newLine();
 		        }
 		        
 			} catch (Exception e) {
