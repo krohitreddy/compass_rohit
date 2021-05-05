@@ -93,6 +93,7 @@ public class S3Extractor {
 			}
 
 			try {
+				List<SimpleGroup> simpleGroups = new ArrayList<>();
 				ParquetFileReader reader = ParquetFileReader
 						.open(HadoopInputFile.fromPath(new Path(filePath), new Configuration()));
 				MessageType schema = reader.getFooter().getFileMetaData().getSchema();
@@ -109,18 +110,19 @@ public class S3Extractor {
 		            
 		            for (int i = 0; i < rows; i++) {
 		            	SimpleGroup simpleGroup = (SimpleGroup) recordReader.read();
-		            	String query = simpleGroup.getString("query", i);
-		            	long ts = simpleGroup.getLong("time_millis", i);
-		            	System.out.println(query);
-		            	System.out.println("" + ts);
-		            	if (i == 1) {
-		            		break;
-		            	}
+		            	simpleGroups.add(simpleGroup);
+		            	
 		            }
 		        }
 		        
 		        
 		        reader.close();
+		        
+		        
+		        for (int i = 0; i < simpleGroups.size(); i++) {
+		        	System.out.println(simpleGroups.get(i).getLong("time_millis", 0));
+		        }
+		        
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
