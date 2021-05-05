@@ -99,6 +99,27 @@ public class S3Extractor {
 		        List<Type> fields = schema.getFields();
 		        for (Type t: fields)
 		        	System.out.println(t.getName());
+		        
+		        PageReadStore pages;
+		        while ((pages = reader.readNextRowGroup()) != null) {
+		        	long rows = pages.getRowCount();
+		        	System.out.println("rows: " +  rows);
+		        	MessageColumnIO columnIO = new ColumnIOFactory().getColumnIO(schema);
+		            RecordReader recordReader = columnIO.getRecordReader(pages, new GroupRecordConverter(schema));
+		            
+		            for (int i = 0; i < rows; i++) {
+		            	SimpleGroup simpleGroup = (SimpleGroup) recordReader.read();
+		            	String query = simpleGroup.getString("query", i);
+		            	long ts = simpleGroup.getLong("time_millis", i);
+		            	System.out.println(query);
+		            	System.out.println("" + ts);
+		            	if (i == 1) {
+		            		break;
+		            	}
+		            }
+		        }
+		        
+		        
 		        reader.close();
 			} catch (Exception e) {
 				e.printStackTrace();
