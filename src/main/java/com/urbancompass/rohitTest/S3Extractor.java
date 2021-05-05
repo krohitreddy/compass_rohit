@@ -51,6 +51,7 @@ public class S3Extractor {
 		do {
 			listObjects = s3.listObjects(listObjectsRequest);
 			for (S3ObjectSummary summary: listObjects.getObjectSummaries()) {
+				System.out.println(summary.getKey());
 				files.add(summary.getKey());
 			}
 			listObjectsRequest.setMarker(listObjects.getNextMarker());
