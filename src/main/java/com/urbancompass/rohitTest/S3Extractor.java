@@ -3,14 +3,34 @@
  */
 package com.urbancompass.rohitTest;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
+
+import org.apache.commons.io.IOUtils;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.parquet.column.page.PageReadStore;
+import org.apache.parquet.example.data.simple.SimpleGroup;
+import org.apache.parquet.example.data.simple.convert.GroupRecordConverter;
+import org.apache.parquet.hadoop.ParquetFileReader;
+import org.apache.parquet.hadoop.util.HadoopInputFile;
+import org.apache.parquet.io.ColumnIOFactory;
+import org.apache.parquet.io.MessageColumnIO;
+import org.apache.parquet.io.RecordReader;
+import org.apache.parquet.schema.MessageType;
+import org.apache.parquet.schema.Type;
 
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.ListObjectsRequest;
 import com.amazonaws.services.s3.model.ObjectListing;
+import com.amazonaws.services.s3.model.S3Object;
+import com.amazonaws.services.s3.model.S3ObjectInputStream;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 
 /**
@@ -18,12 +38,11 @@ import com.amazonaws.services.s3.model.S3ObjectSummary;
  */
 public class S3Extractor {
 
-	
 	private static final String S3_BUCKET = "compass-production-elastic-search-queries";
 	private static final String S3_PREFIX = "queries/year=2021/month=04/day=%s/hour=%s/";
-	
+
 	private static AmazonS3 s3 = null;
-	
+
 	public static void process(int day, int fromHour, int toHour) throws Exception {
 
 		s3 = AmazonS3ClientBuilder.standard().build();
@@ -37,8 +56,55 @@ public class S3Extractor {
 		for (int i = fromHour; i <= toHour; i++) {
 			files.addAll(getFilesForHour(day, i));
 		}
-		
-		System.out.print(files.size());
+
+		getData(files);
+
+		System.out.println(files.size());
+
+	}
+
+	private static void getData(List<String> files) {
+		for (String file : files) {
+			S3ObjectInputStream objectContent = null;
+			OutputStream outputStream = null;
+			String filePath = "/home/rohit.kommareddy/development/rohitTest/" + UUID.randomUUID().toString();
+			File tempFile = new File(filePath);
+			try {
+				S3Object s3Object = s3.getObject(S3_BUCKET, file);
+				objectContent = s3Object.getObjectContent();
+				outputStream = new FileOutputStream(tempFile);
+				IOUtils.copyLarge(objectContent, outputStream);
+			} catch (Exception e) {
+				e.printStackTrace();
+				continue;
+			} finally {
+				if (objectContent != null) {
+					try {
+						objectContent.close();
+					} catch (IOException e) {
+					}
+				}
+				if (outputStream != null) {
+					try {
+						outputStream.close();
+					} catch (IOException e) {
+					}
+				}
+			}
+
+			try {
+				ParquetFileReader reader = ParquetFileReader
+						.open(HadoopInputFile.fromPath(new Path(filePath), new Configuration()));
+				MessageType schema = reader.getFooter().getFileMetaData().getSchema();
+		        List<Type> fields = schema.getFields();
+		        for (Type t: fields)
+		        	System.out.println(t.getName());
+		        reader.close();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			break;
+		}
 
 	}
 
@@ -50,13 +116,13 @@ public class S3Extractor {
 		ObjectListing listObjects = null;
 		do {
 			listObjects = s3.listObjects(listObjectsRequest);
-			for (S3ObjectSummary summary: listObjects.getObjectSummaries()) {
+			for (S3ObjectSummary summary : listObjects.getObjectSummaries()) {
 				// System.out.println(summary.getKey());
 				files.add(summary.getKey());
 			}
 			listObjectsRequest.setMarker(listObjects.getNextMarker());
 		} while (listObjects.isTruncated());
-		
+
 		return files;
 	}
 
