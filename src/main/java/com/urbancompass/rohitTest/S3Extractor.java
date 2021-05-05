@@ -45,6 +45,7 @@ public class S3Extractor {
 	private static List<String> getFilesForHour(int day, int hour) {
 		List<String> files = new ArrayList<>();
 		String prefix = String.format(S3_PREFIX, String.format("%02d", day), String.format("%02d", hour));
+		System.out.println(prefix);
 		ListObjectsRequest listObjectsRequest = new ListObjectsRequest().withBucketName(S3_BUCKET).withPrefix(prefix);
 		ObjectListing listObjects = null;
 		do {
