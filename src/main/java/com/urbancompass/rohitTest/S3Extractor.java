@@ -3,8 +3,10 @@
  */
 package com.urbancompass.rohitTest;
 
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
@@ -63,7 +65,10 @@ public class S3Extractor {
 
 	}
 
-	private static void getData(List<String> files) {
+	private static void getData(List<String> files) throws Exception {
+		BufferedWriter writer = new BufferedWriter(new FileWriter("/home/rohit.kommareddy/development/rohitTest/finalFile.tsv"));
+		writer.write("timestamp\tquery");
+		writer.newLine();
 		for (String file : files) {
 			S3ObjectInputStream objectContent = null;
 			OutputStream outputStream = null;
@@ -117,18 +122,19 @@ public class S3Extractor {
 		        
 		        
 		        reader.close();
-		        
+		        tempFile.delete();
 		        
 		        for (int i = 0; i < simpleGroups.size(); i++) {
-		        	System.out.println(simpleGroups.get(i).getLong("time_millis", 0));
+		        	writer.write(simpleGroups.get(i).getLong("time_millis", 0) + "");
+		        	writer.write("\t");
+		        	writer.write(simpleGroups.get(i).getString("query", 0) + "");
 		        }
 		        
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
-			break;
 		}
-
+		writer.close();
 	}
 
 	private static List<String> getFilesForHour(int day, int hour) {
