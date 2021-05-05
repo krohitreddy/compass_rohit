@@ -59,9 +59,11 @@ public class S3Extractor {
 			files.addAll(getFilesForHour(day, i));
 		}
 
+		
+		System.out.println("total files: " + files.size());
 		getData(files);
 
-		System.out.println(files.size());
+		
 
 	}
 
