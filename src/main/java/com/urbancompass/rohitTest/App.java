@@ -9,7 +9,8 @@ public class App {
 
 		try {
 			// S3Extractor.process(29, -1, -1);
-			justCount();
+			// justCount();
+			S3Extractor.copyFilesToLocal(29, 0, 2);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

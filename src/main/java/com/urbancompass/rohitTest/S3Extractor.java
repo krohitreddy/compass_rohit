@@ -43,27 +43,95 @@ public class S3Extractor {
 	private static final String S3_BUCKET = "compass-production-elastic-search-queries";
 	private static final String S3_PREFIX = "queries/year=2021/month=04/day=%s/hour=%s/";
 
-	private static AmazonS3 s3 = null;
+	private static AmazonS3 s3 = AmazonS3ClientBuilder.standard().build();
+	
 
-	public static void process(int day, int fromHour, int toHour) throws Exception {
-
-		s3 = AmazonS3ClientBuilder.standard().build();
+	public static void copyFilesToLocal(int day, int fromHour, int toHour) throws Exception {
 		if (fromHour == -1) {
 			fromHour = 0;
 		}
 		if (toHour == -1) {
 			toHour = 23;
 		}
+		
+		List<String[]> files = new ArrayList<>();
+		for (int i = fromHour; i < toHour; i++) {
+			files.addAll(getFilesWithTSForHour(day, i));
+		}
+		
+		System.out.println("size: " + files.size());
+		
+		int num = 1;
+		for (String[] arr: files) {
+			System.out.println(num + "");
+			System.out.println(arr[0]);
+			num++;
+			S3ObjectInputStream objectContent = null;
+			OutputStream outputStream = null;
+			String filePath = "/home/rohit.kommareddy/development/rohitTest/files/" + arr[1];
+			File tempFile = new File(filePath);
+			
+			try {
+				S3Object s3Object = s3.getObject(S3_BUCKET, arr[0]);
+				objectContent = s3Object.getObjectContent();
+				outputStream = new FileOutputStream(tempFile);
+				IOUtils.copyLarge(objectContent, outputStream);
+			} catch (Exception e) {
+				e.printStackTrace();
+				continue;
+			} finally {
+				if (objectContent != null) {
+					try {
+						objectContent.close();
+					} catch (IOException e) {
+					}
+				}
+				if (outputStream != null) {
+					try {
+						outputStream.close();
+					} catch (IOException e) {
+					}
+				}
+			}
+		}
+	}
+	
+	private static List<String[]> getFilesWithTSForHour(int day, int hour) {
+		List<String[]> files = new ArrayList<>();
+		String prefix = String.format(S3_PREFIX, String.format("%02d", day), String.format("%02d", hour));
+		System.out.println(prefix);
+		ListObjectsRequest listObjectsRequest = new ListObjectsRequest().withBucketName(S3_BUCKET).withPrefix(prefix);
+		ObjectListing listObjects = null;
+		do {
+			listObjects = s3.listObjects(listObjectsRequest);
+			for (S3ObjectSummary summary : listObjects.getObjectSummaries()) {
+				// System.out.println(summary.getKey());
+				long ts = summary.getLastModified().getTime();
+				files.add(new String[] {summary.getKey(), Long.toString(ts)});
+			}
+			listObjectsRequest.setMarker(listObjects.getNextMarker());
+		} while (listObjects.isTruncated());
+
+		return files;
+	}
+	
+	
+	public static void getFilesAndExtractData(int day, int fromHour, int toHour) throws Exception {
+
+		if (fromHour == -1) {
+			fromHour = 0;
+		}
+		if (toHour == -1) {
+			toHour = 24;
+		}
 		List<String> files = new ArrayList<>();
-		for (int i = fromHour; i <= toHour; i++) {
+		for (int i = fromHour; i < toHour; i++) {
 			files.addAll(getFilesForHour(day, i));
 		}
 
 		
 		System.out.println("total files: " + files.size());
 		getData(files);
-
-		
 
 	}
 
