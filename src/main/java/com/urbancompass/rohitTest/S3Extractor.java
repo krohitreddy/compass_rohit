@@ -68,7 +68,7 @@ public class S3Extractor {
 			num++;
 			S3ObjectInputStream objectContent = null;
 			OutputStream outputStream = null;
-			String filePath = "/home/rohit.kommareddy/development/rohitTest/files/" + arr[1];
+			String filePath = "/home/rohit.kommareddy/development/rohitTest/files/" + arr[1] + ".parquet";
 			File tempFile = new File(filePath);
 			
 			try {
